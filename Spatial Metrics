@@ -1,0 +1,42 @@
+###################################### TRAIPSE METRICS ########################################################
+library(traipse)
+## "most likely" track, paths through highest density pixels
+metrics1 <- fitWT %>% group_by(gmt, id) %>% 
+  #filter(value == max(value)) %>% 
+  filter(row_number() == which.max(value)) %>% 
+  ungroup() %>% 
+  mutate(lon = xFromCell(gridWT, cell), 
+         lat = yFromCell(gridWT, cell)) %>% 
+  arrange(id, gmt) %>% 
+  dplyr::select(lon, lat, gmt, id, everything())
+
+write.csv(metrics1,"baseline data.csv")
+
+################################## TRAIPSE PACKAGE ################################
+#Traipse package will give you metrics including speed, distance, distance to colony
+metrics$colony_lon <- NA
+metrics$colony_lat <- NA
+metrics$colony_lon[substr(metrics$id, 1, 2) == "GI"] <- 149.9133
+metrics$colony_lat[substr(metrics$id, 1, 2) == "GI"] <- -37.5649
+metrics$colony_lon[substr(metrics$id, 1, 2) == "MT"] <- 153.149
+metrics$colony_lat[substr(metrics$id, 1, 2) == "MT"] <- -30.305
+metrics$colony_lon[substr(metrics$id, 1, 2) == "MG"] <- 150.225
+metrics$colony_lat[substr(metrics$id, 1, 2) == "MG"] <- -36.250
+
+
+metrics <- metrics %>% group_by(id) %>% 
+  mutate(speed = traipse::track_speed(lon, lat, gmt)) %>% 
+  mutate(dist = traipse::track_distance(lon, lat)) %>% 
+  mutate(dist_to_colony = traipse::track_distance_to(lon, lat, colony_lon, colony_lat)) %>% 
+  ungroup()
+
+metrics
+
+library(ggplot2)
+ggplot(metrics, aes(lon, lat, group = id, col = id)) + geom_path() + guides(col = F)
+
+kml <- write_track_kml(trip(metrics))
+
+write_track_kml(trip(metrics), kml_file = "mostlikely.kmz")
+
+write.csv(metrics,"distance-speed data.csv")
