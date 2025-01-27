@@ -1,0 +1,161 @@
+#Load your libraries
+
+library(tmap)
+library(tmaptools)
+data(World)
+tmap_mode("plot")
+
+library(dplyr)
+library(marmap)
+library(raster)
+library(sp)
+library(RColorBrewer)
+library(maps)
+library(sf)
+library(tmap)
+library(tmaptools)
+
+#################################################Habitat use breeding figures by year ##############################
+
+#Breeding Period Maps
+#Sets up the rasters; 1. grid 2.tracking data derived from the fit.Rdata files from the preprocessing analysis
+
+fitWT <- readRDS("fit-tab.rds")
+gridWT  <- raster(extent(135, 170, -60, -15), crs = "+proj=longlat +datum=WGS84", res = 0.1)
+area_tab <- tibble::tibble(cell = 1:ncell(gridWT), area = raster::values(area(gridWT)))
+
+
+#subset by colony including all years
+MGall <- fitWT %>% dplyr::filter(stringr::str_detect(id,"^MG"))
+MTall <- fitWT %>% dplyr::filter(stringr::str_detect(id,"^MT"))
+GIall <- fitWT %>% dplyr::filter(stringr::str_detect(id,"^GI"))
+
+#############################################################################################################
+#subset data by breeding period
+#Start date is the earliest individual and the end date is the last individual date
+MG1.br <- MGall %>% dplyr::select(value, cell, id, gmt) %>% filter(gmt <= "2016-04-15")
+MG2.br <- MGall %>% dplyr::select(value, cell, id, gmt) %>% filter(gmt >="2016-09-06" & gmt <= "2017-04-11")
+MG3.br <- MGall %>% dplyr::select(value, cell, id, gmt) %>% filter(gmt >="2017-09-12" & gmt <= "2018-03-18")
+
+MG.br <- dplyr::bind_rows(MG1.br,MG2.br)
+MG.br <- dplyr::bind_rows(MG.br,MG3.br)
+unique(MG.br$id)
+
+MT1.br <- MTall %>% dplyr::select(value, cell, id, gmt) %>% filter(gmt <="2016-03-17")
+MT2.br <- MTall %>% dplyr::select(value, cell, id, gmt) %>% filter(gmt >="2016-08-31" & gmt <= "2017-03-23")
+MT2.br <- MT2.br %>% filter(id !="MT2_83871_BC222fit.RData") # & id !="MT2_77187_BB852fit.RData")
+MT3.br <- MTall %>% dplyr::select(value, cell, id, gmt) %>% filter(gmt >="2017-08-31" & gmt <= "2018-03-12")
+MT.br <- dplyr::bind_rows(MT1.br,MT2.br)
+MT.br <- dplyr::bind_rows(MT.br,MT3.br)
+unique(MT.br$id)
+
+########################Binning tracks #######################################################
+#Breeding period by year and colony
+#Montague Island - sum the values by cell number for all years breeding period only
+mgsum.br1 <- MG1.br %>% group_by(cell) %>% summarise(value = sum(value))
+mgnr.br1 <- setValues(raster(gridWT), NA)
+mgnr.br1[mgsum.br1$cell] <- mgsum.br1$value
+qv <- quantile(mgnr.br1, 0.985)
+mgnr.br1[mgnr.br1 > qv] <- qv
+unique(MG1.br$id)
+
+mgsum.br2 <- MG2.br %>% group_by(cell) %>% summarise(value = sum(value))
+mgnr.br2 <- setValues(raster(gridWT), NA)
+mgnr.br2[mgsum.br2$cell] <- mgsum.br2$value
+qv <- quantile(mgnr.br2, 0.985)
+mgnr.br2[mgnr.br2 > qv] <- qv
+unique(MG2.br$id)
+
+mgsum.br3 <- MG3.br %>% group_by(cell) %>% summarise(value = sum(value))
+mgnr.br3 <- setValues(raster(gridWT), NA)
+mgnr.br3[mgsum.br3$cell] <- mgsum.br3$value
+qv <- quantile(mgnr.br3, 0.985)
+mgnr.br3[mgnr.br3 > qv] <- qv
+plot(mgnr.br3)
+unique(MG3.br$id)
+#values of less than 10,000 for BI and les than
+#mgnr.br3 <- mgnr.br3 %>% dplyr::filter(>=10000)
+
+#Muttonbird Island
+mtsum.br1 <- MT1.br %>% group_by(cell) %>% summarise(value = sum(value))
+mtnr.br1 <- setValues(raster(gridWT), NA)
+mtnr.br1[mtsum.br1$cell] <- mtsum.br1$value
+qv <- quantile(mtnr.br1, 0.985)
+mtnr.br1[mtnr.br1 > qv] <- qv
+unique(MT1.br$id)
+
+mtsum.br2 <- MT2.br %>% group_by(cell) %>% summarise(value = sum(value))
+mtnr.br2 <- setValues(raster(gridWT), NA)
+mtnr.br2[mtsum.br2$cell] <- mtsum.br2$value
+qv <- quantile(mtnr.br2, 0.985)
+mtnr.br2[mtnr.br2 > qv] <- qv
+unique(MT2.br$id)
+
+mtsum.br3 <- MT3.br %>% group_by(cell) %>% summarise(value = sum(value))
+mtnr.br3 <- setValues(raster(gridWT), NA)
+mtnr.br3[mtsum.br3$cell] <- mtsum.br3$value
+qv <- quantile(mtnr.br3, 0.985)
+mtnr.br3[mtnr.br3 > qv] <- qv
+unique(MT3.br$id)
+
+#Project the values from the gridWT raster to a new raster with another projection (CRS coordinate reference system), everytime you change your base map you will need to rerun the below code to match your raster data with the spatialdatalines dataframe or map.
+MT.br1<-projectRaster(mtnr.br1, bathy.br3)
+plot(MT.br1)
+
+MT.br2<-projectRaster(mtnr.br2, bathy.br3)
+plot(MT.br2)
+
+MT.br3<-projectRaster(mtnr.br3, bathy.br3)
+plot(MT.br3)
+
+MG.br1<-projectRaster(mgnr.br1, bathy.br3)
+plot(MG.br1)
+
+MG.br2<-projectRaster(mgnr.br2, bathy.br3)
+plot(MG.br2)
+
+MG.br3<-projectRaster(mgnr.br3, bathy.br3)
+plot(MG.br3)
+
+##################Create maps###########################################################
+library(sf)
+o = st_sf(name = c("Indian Ocean", "Bass Strait","Tasman Sea",
+                   "Philippine Sea","Coral Sea","STFZ","SAFZ","PFZ"), 
+          st_sfc(st_point(c(110, -40)), st_point(c(148, -40)),st_point(c(157, -41)),
+                 st_point(c(135, 18)),st_point(c(155, -20)),
+                 st_point(c(155, -48.3)),st_point(c(164, -54)),st_point(c(167, -58))), crs = 4326)
+
+c = st_sf(name = c("BI", "MI"), 
+          st_sfc(st_point(c(149, -36.2)), st_point(c(152, -30.2))), crs = 4326)
+
+###########################Lets starting creating maps############################
+#Muttonbird Island
+
+#Below is based on first year's data for Muttonbird Island, replicated for all years
+MT1brsin<-tm_shape(MT.br1)+tm_raster(palette = "Greens", legend.show = FALSE)+
+  tmap::tm_shape(bathy_F6)+tm_iso(col="grey")+
+  tm_shape(rc1, col = "black")+tm_lines(col = "black", lty = "dashed")+ #STFZ 
+  tmap::tm_shape(World)+
+  tm_polygons(col = "grey35")+
+  tmap::tm_shape(o)+tm_text("name", size = 0.9, col = "grey20")+
+  tmap::tm_shape(c)+tm_text("name", size = 0.9, col = "white")+
+  tm_grid(projection = 4326, alpha = 0.2, labels.format = list(big.mark = ","), labels.cardinal = TRUE, labels.size = 0.8, labels.show = TRUE)+
+  tm_xlab("Longitude", size = 0.8, space = 0.5)+tm_ylab("Latitude", size = 0.8, space = 0.8)+ 
+  tm_layout(title = "A", scale = 1, title.size = 1.5, title.color = "white", title.position = c('left','top'))+
+  tm_shape(siteMT)+tm_dots(size = 0.5, shape = 21, col = "green")+tm_shape(MTs1)+tm_dots(size = 0.5, shape = 24, col = "green")+tm_shape(MTsmax1)+tm_dots(size = 0.5, shape = 25, col = "green")+tm_shape(MTstage1)+tm_dots(size = 0.5, shape = 23, col = "green")+
+  tm_shape(siteMG)+tm_dots(size = 0.5, shape = 21, col = "red")+tm_shape(MGs1)+tm_dots(size = 0.5, shape = 24, col = "red")+tm_shape(MGsmax1)+tm_dots(size = 0.5, shape = 25, col = "red")+tm_shape(MGstage1)+tm_dots(size = 0.5, shape = 23, col = "red")+tm_compass(north = 0, text.size = 0.8, position = c("right", "top"))
+
+###Montague Island
+
+MG1brsin<-tm_shape(MG.br1)+tm_raster(palette = "Oranges", legend.show = FALSE)+
+  tmap::tm_shape(bathy_F6)+tm_iso(col="grey")+
+  tm_shape(rc1, col = "black")+tm_lines(col = "black", lty = "dashed")+ #STFZ 
+  tmap::tm_shape(World)+
+  tm_polygons(col = "grey35")+
+  tmap::tm_shape(o)+tm_text("name", size = 0.9, col = "grey20")+
+  tmap::tm_shape(c)+tm_text("name", size = 0.9, col = "white")+
+  tm_grid(projection = 4326, alpha = 0.2, labels.format = list(big.mark = ","), labels.cardinal = TRUE, labels.size = 0.8, labels.show = TRUE)+
+  tm_xlab("Longitude", size = 0.8, space = 0.5)+tm_ylab("Latitude", size = 0.8, space = 0.8)+ 
+  tm_layout(title = "D", scale = 1, title.size = 1.5, title.color = "white", title.position = c('left','top'))+
+  tm_shape(siteMT)+tm_dots(size = 0.5, shape = 21, col = "green")+tm_shape(MTs1)+tm_dots(size = 0.5, shape = 24, col = "green")+tm_shape(MTsmax1)+tm_dots(size = 0.5, shape = 25, col = "green")+tm_shape(MTstage1)+tm_dots(size = 0.5, shape = 23, col = "green")+
+  tm_shape(siteMG)+tm_dots(size = 0.5, shape = 21, col = "red")+tm_shape(MGs1)+tm_dots(size = 0.5, shape = 24, col = "red")+tm_shape(MGsmax1)+tm_dots(size = 0.5, shape = 25, col = "red")+tm_shape(MGstage1)+tm_dots(size = 0.5, shape = 23, col = "red")+tm_compass(north = 0, text.size = 0.8, position = c("right", "top"))
