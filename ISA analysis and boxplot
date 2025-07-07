@@ -1,0 +1,63 @@
+#Stable Isotope analysis - breeding season https://github.com/SeabirdEcologyUFRGS/SIA_FdN/blob/main/SIA_analysis_MB_Noronha.R
+
+##### 1. General metrics ####
+
+library(FSA)
+library(dplyr)
+library(ggplot2)
+library(gridExtra)
+library(ggpubr)
+library(ggsignif)
+library(here)
+library(readxl)
+
+chicks <- read.csv(here("Y123chicks-publication.csv"))
+
+#now that you have identified your outliers remove them from the dataset
+data.iso <- subset(chicks,c > -19 )
+
+iso_breeding <- data.iso %>% dplyr::select(c,n,colony,year)
+
+iso_breeding <- iso_breeding %>% rename(d_carbon = c,
+                        d_nitrogen = n)
+
+C_Br <-Summarize(carbon ~ year+colony,
+                 data = iso_breeding, digits=2)
+C_Br
+
+N_Br <-Summarize(nitrogen ~ year+colony,
+                 data = iso_breeding, digits=2)
+N_Br
+
+year.order <- factor(iso_breeding$year, levels=c("2016", "2017","2018"))
+
+C1 <- ggplot(data = iso_breeding, aes(x=as.factor(year.order), y= carbon, fill=colony)) +
+  geom_boxplot()+ 
+  ylab(expression(paste(delta^{13}, "C (\u2030)")))+
+  xlab(expression(""))+ theme_bw() + theme(legend.title = element_blank())  + 
+  theme(text = element_text(size=10))+
+  theme(axis.title.y = element_text(margin = margin(t = 0, r = 5, b = 0, l = -1.4), 
+                                    size= 10, colour="black", face="bold")) +
+  scale_fill_manual(values=c("sienna1", "seagreen")) +  theme(legend.position="none")  + scale_y_continuous(limits = c(-19, -15), breaks = seq(-19, -15, by = 1))+
+  theme(plot.margin = unit(c(0.5,0.2, 0,0.1), "cm")) + theme(axis.text.x = element_blank())
+
+plot(C1)
+
+
+N1 <- ggplot(data = iso_breeding, aes(x=as.factor(year.order), y= nitrogen, fill=colony)) +
+  geom_boxplot() + ylab(expression(paste(delta^{15}, "N (\u2030)")))+
+  xlab(expression("")) + theme_bw() + theme(legend.title = element_blank())  + 
+  theme(text = element_text(size=10))+
+  theme(axis.title.y = element_text(margin = margin(t = 0, r = 5, b = 0, l = -1.4), 
+                                    size= 10, colour="black", face="bold")) +  theme(legend.position="none")+
+  theme(plot.margin=unit(c(0.2,0.2,0,0.25), "cm"))  +
+  scale_fill_manual(values=c("sienna1", "seagreen"))
+
+plot(N1)
+
+tiff("ISA_by_population_breeding.tiff", height=125, width=90, 
+     units='mm', res=1000)
+
+ggarrange(C1, N1, ncol=1, nrow=2, common.legend= TRUE, legend="bottom")
+
+dev.off()
