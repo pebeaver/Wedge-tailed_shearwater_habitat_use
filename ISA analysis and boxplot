@@ -1,4 +1,4 @@
-#Stable Isotope analysis - breeding season https://github.com/SeabirdEcologyUFRGS/SIA_FdN/blob/main/SIA_analysis_MB_Noronha.R
+#Stable Isotope analysis - breeding season
 
 ##### 1. General metrics ####
 
@@ -18,8 +18,8 @@ data.iso <- subset(chicks,c > -19 )
 
 iso_breeding <- data.iso %>% dplyr::select(c,n,colony,year)
 
-iso_breeding <- iso_breeding %>% rename(d_carbon = c,
-                        d_nitrogen = n)
+iso_breeding <- iso_breeding %>% rename(carbon = c,
+                        nitrogen = n)
 
 C_Br <-Summarize(carbon ~ year+colony,
                  data = iso_breeding, digits=2)
@@ -55,9 +55,108 @@ N1 <- ggplot(data = iso_breeding, aes(x=as.factor(year.order), y= nitrogen, fill
 
 plot(N1)
 
+ggarrange(C1, N1, ncol=1, nrow=2, common.legend= TRUE, legend="bottom")
+
 tiff("ISA_by_population_breeding.tiff", height=125, width=90, 
      units='mm', res=1000)
 
 ggarrange(C1, N1, ncol=1, nrow=2, common.legend= TRUE, legend="bottom")
 
 dev.off()
+
+
+##### 2. Kruskall-Wallis/ Dunn's test ####
+# CARBON x COLONY
+KWC.yearb <- kruskal.test(iso_breeding$carbon~iso_breeding$colony)
+KWC.yearb
+
+dunnTest(carbon ~ colony, data = iso_breeding, method = "bonferroni")
+
+
+# NITROGEN X colony
+KWN.yearb <- kruskal.test(iso_breeding$nitrogen~iso_breeding$colony)
+KWN.yearb
+
+dunnTest(nitrogen ~ colony, data = iso_breeding, method = "bonferroni")
+
+#### COLONY BY YEAR ####
+
+#Muttonbird Island
+#carbon
+iso_MI <- iso_breeding[which(iso_breeding$colony=="MI"), ]
+
+kruskal.test(iso_MI$carbon~iso_MI$year)
+#d_carbon chi-squared = 44.585, df = 2, p-value = 2.082e-10
+dunnTest(carbon ~ year, data = iso_MI, method = "bonferroni")
+
+#nitrogen
+iso_MI <- iso_breeding[which(iso_breeding$colony=="MI"), ]
+
+kruskal.test(iso_MI$d_nitrogen~iso_MI$year)
+#d_nitrogen chi-squared = 44.972, df = 2, p-value = 4.665e-10
+dunnTest(nitrogen ~ year, data = iso_MI, method = "bonferroni")
+
+#Montague Island
+#carbon
+iso_BI <- iso_breeding[which(iso_breeding$colony=="BI"), ]
+
+kruskal.test(iso_BI$carbon~iso_BI$year)
+#d_carbon chi-squared = 16.799, df = 2, p-value = 0.0002249
+dunnTest(carbon ~ year, data = iso_BI, method = "bonferroni")
+
+#nitrogen
+iso_BI <- iso_breeding[which(iso_breeding$colony=="BI"), ]
+
+kruskal.test(iso_BI$nitrogen~iso_BI$year)
+#d_nitrogen chi-squared = 12.891, df = 2, p-value = 0.001588
+dunnTest(nitrogen ~ year, data = iso_BI, method = "bonferroni")
+
+
+
+#KW and Dunns by year
+#2016
+iso_2016 <- iso_breeding[which(iso_breeding$year=="2016"), ]
+
+#carbon
+kruskal.test(iso_2016$carbon~iso_2016$colony)
+#data:  iso_2016$d_carbon by iso_2016$colony
+#Kruskal-Wallis chi-squared = 20.216, df = 1, p-value = 6.916e-06
+
+dunnTest(carbon ~ colony, data = iso_2016, method = "bonferroni")
+#nitrogen
+kruskal.test(iso_2016$nitrogen~iso_2016$colony)
+#data:  iso_2016$d_nitrogen by iso_2016$colony
+#Kruskal-Wallis chi-squared = 43.002, df = 1, p-value = 5.468e-11
+
+dunnTest(nitrogen ~ colony, data = iso_2016, method = "bonferroni")
+
+#2017
+#carbon
+iso_2017 <- iso_breeding[which(iso_breeding$year=="2017"), ]
+
+kruskal.test(iso_2017$carbon~iso_2017$colony)
+#data:  iso_2017$d_carbon by iso_2017$colony
+#Kruskal-Wallis chi-squared = 27.161, df = 1, p-value = 1.872e-07
+dunnTest(carbon ~ colony, data = iso_2017, method = "bonferroni")
+
+#nitrogen
+kruskal.test(iso_2017$nitrogen~iso_2017$colony)
+#data:  iso_2017$d_nitrogen by iso_2017$colony
+#Kruskal-Wallis chi-squared = 1.7705, df = 1, p-value = 0.1833
+dunnTest(nitrogen ~ colony, data = iso_2017, method = "bonferroni")
+
+
+#2018
+#carbon
+iso_2018 <- iso_breeding[which(iso_breeding$year=="2018"), ]
+
+kruskal.test(iso_2018$carbon~iso_2018$colony)
+#data:  iso_2018$d_carbon by iso_2018$colony
+#Kruskal-Wallis chi-squared = 18.772, df = 1, p-value = 1.473e-05
+dunnTest(carbon ~ colony, data = iso_2018, method = "bonferroni")
+
+#nitrogen
+kruskal.test(iso_2018$nitrogen~iso_2018$colony)
+#data:  iso_2018$d_nitrogen by iso_2018$colony
+#Kruskal-Wallis chi-squared = 36.832, df = 1, p-value = 1.288e-09
+dunnTest(nitrogen ~ colony, data = iso_2018, method = "bonferroni")
