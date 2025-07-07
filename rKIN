@@ -1,1 +1,147 @@
+---
+title: "rKin WTSW 50KD"
+author: "Penny Beaver"
+date: "2025-01-13"
+output: html_document
+---
 
+```{r include=TRUE}
+library(ggplot2)
+library(tibble)
+library(here)
+library(MASS)
+library(raster)
+library(sp)
+library(maptools)
+library(dplyr)
+```
+
+This loads your data and give is a name
+```{r include=TRUE}
+library(rKIN)
+iso <- read.csv("Y123raw.csv")
+as_tibble(iso)
+```
+
+
+#Subset data by chicks and year
+```{r}
+chicks<-iso %>% dplyr::filter(age=="chick")
+
+# Remove rows with outlier carbon values
+#chicks <- subset(chicks,c > -18.2 )
+
+#by(chicks, chicks["age"],summary)
+```
+
+may not need the below subsets
+```{r}
+#creates subsets by year for chicks
+Y1ch <- chicks %>% dplyr::filter(yearno=="1")
+Y2ch <- chicks %>% dplyr::filter(yearno=="2")
+Y3ch <- chicks %>% dplyr::filter(yearno=="3")
+```
+
+#Create Kernal UD 
+The estKIN function uses the following workflow to estimate 2-D Bivariate Normal Kernel Utilization estimates: 
+1) Obtain the min/max X and Y values and expand the extent of values by the ‘scaler’. These values are then used to create a lattice/matrix of points for which the kernel will be estimated to. 
+2) Using MASS::kde2d and the default bandwidth, fit the kernel to each ‘group’ individually. 
+3) For each ‘group’, obtain the threshold values for each ‘level’ and extract the contourlines. 
+4) Convert the Lines to a SpatialPolygonsDataFrame (sp package) and attribute with ShapeArea 
+5) Function returns an object of class(“estObj”), which is a list of SpatialPolygonsDataFrames, 1 list item for each group.
+
+```{r include=TRUE}
+library(rKIN)
+##YEAR 1 Chicks (2016)
+# estimate niche overlap between 2 species using kernel UD and 3 confidence intervals
+test.kin.Y1ch<- estKIN(data=Y1ch, x="c", y="n", group="colony", 
+                  levels=c(50, 75, 95), scaler=2)
+# Extract the area of each polygon
+kin.area.Y1ch<- getArea(test.kin.Y1ch)
+kin.area.Y1ch
+# determine polygon overlap for all polygons
+kin.olp.Y1ch<- calcOverlap(test.kin.Y1ch)
+kin.olp.Y1ch
+
+##YEAR 2 Chicks (2017)
+# estimate niche overlap between 2 species using kernel UD and 3 confidence intervals
+test.kin.Y2ch<- estKIN(data=Y2ch, x="c", y="n", group="colony", 
+                  levels=c(50, 75, 95), scaler=2)
+# Extract the area of each polygon
+kin.area.Y2ch<- getArea(test.kin.Y2ch)
+kin.area.Y2ch
+# determine polygon overlap for all polygons
+kin.olp.Y2ch<- calcOverlap(test.kin.Y2ch)
+kin.olp.Y2ch
+
+##YEAR 3 Chicks (2018)
+# estimate niche overlap between 2 species using kernel UD and 3 confidence intervals
+test.kin.Y3ch<- estKIN(data=Y3ch, x="c", y="n", group="colony", 
+                  levels=c(50, 75, 95), scaler=2)
+# Extract the area of each polygon
+kin.area.Y3ch<- getArea(test.kin.Y3ch)
+kin.area.Y3ch
+# determine polygon overlap for all polygons
+kin.olp.Y3ch<- calcOverlap(test.kin.Y3ch)
+kin.olp.Y3ch
+
+# plot the kernel estimates
+plotKIN(test.kin.Y1ch, scaler = 1, title="Kernel UD Year 1 Chick Isotope Data", xlab = expression({delta}^13*C~ ('\u2030')), ylab = expression({delta}^15*N~ ('\u2030')), xmin = -21, xmax = -14, ymin = 7, ymax = 17)
+plotKIN(test.kin.Y2ch, title="Kernel UD Year 2 Chick Isotope Data", xlab = expression({delta}^13*C~ ('\u2030')), ylab = expression({delta}^15*N~ ('\u2030')), xmin = -21, xmax = -14, ymin = 7, ymax = 17)
+plotKIN(test.kin.Y3ch, title="Kernel UD Year 3 Chick Isotope Data", xlab = expression({delta}^13*C~ ('\u2030')), ylab = expression({delta}^15*N~ ('\u2030')), xmin = -21, xmax = -14, ymin = 7, ymax = 17)
+```
+
+Plot all figures with aesethetics KUD  
+```{r}
+Y1plot<-plotKIN(test.kin.Y1ch, scaler = 1,  
+                alpha = 0.3, title="A", 
+                xlab = expression({delta}^13*C~ ('\u2030')), 
+                ylab = expression({delta}^15*N~ ('\u2030')), 
+                xmin = -19, 
+                xmax = -15, 
+                ymin = 7, 
+                ymax = 16, 
+                colors = c("#d94801","#005a32"))+
+  ggplot2::theme(legend.position = "none", plot.title = element_text(hjust = 0, size = 12))+geom_vline(xintercept = -18.3, linetype = 3)
+
+Y2plot<-plotKIN(test.kin.Y2ch, scaler = 1,  
+                alpha = 0.3, title="B", 
+                xlab = expression({delta}^13*C~ ('\u2030')), 
+                ylab = expression({delta}^15*N~ ('\u2030')), 
+                xmin = -19, 
+                xmax = -15, 
+                ymin = 7, 
+                ymax = 16, 
+                colors = c("#d94801","#005a32"))+
+  ggplot2::theme(legend.position = "none", plot.title = element_text(hjust = 0, size = 12))+
+  geom_vline(xintercept = -18.3, linetype = 3)
+
+Y3plot<-plotKIN(test.kin.Y3ch, scaler = 1,  
+                alpha = 0.3, title="C", 
+                xlab = expression({delta}^13*C~ ('\u2030')), 
+                ylab = expression({delta}^15*N~ ('\u2030')), 
+                xmin = -19, 
+                xmax = -15, 
+                ymin = 7, 
+                ymax = 16, 
+                colors = c("#d94801","#005a32"))+
+  ggplot2::theme(legend.position = "none", plot.title = element_text(hjust = 0, size = 12))+
+  geom_vline(xintercept = -18.3, linetype = 3)
+```
+
+```{r}
+library(gridExtra)
+Fig5 <-grid.arrange(Y1plot, Y2plot, Y3plot, nrow=1)
+```
+
+#and to save your file as a 300dpi publisher figure use the below
+```{r}
+#save your file 300dpi
+grob <- arrangeGrob(Y1plot, Y2plot, Y3plot, nrow = 1)
+ggsave("Figure_5.tiff", grob, units="cm", width=NA, height=NA, dpi=300, limitsize = FALSE)
+```
+
+```{r}
+#save your figure
+ggsave("Fig3.tiff",units = "cm", dpi = 300)
+```
